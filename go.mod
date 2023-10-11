@@ -1,3 +1,3 @@
 module github.com/cruffinoni/printer
 
-go 1.21
+go 1.21.0
