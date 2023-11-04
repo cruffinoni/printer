@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -137,7 +136,7 @@ func (l *Writer) GetLogLevel() int {
 }
 
 func (l *Writer) formatPrefix(level string) string {
-	return "[" + strconv.FormatUint(getGoroutineID(), 10) + " | " + time.Now().Format("15:04:05.000") + " | " + level + "]"
+	return fmt.Sprintf("[%03d | %s | %s]", getGoroutineID(), time.Now().Format("15:04:05.000"), level)
 }
 
 func (l *Writer) Error(format string, a ...interface{}) {

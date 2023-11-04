@@ -41,3 +41,11 @@ func Info(format string, a ...interface{}) {
 func Debug(format string, a ...interface{}) {
 	globalPrint.Debug(format, a...)
 }
+
+func SetLogLevel(level int) {
+	globalPrint.SetLogLevel(level)
+}
+
+func GetLogLevel() int {
+	return globalPrint.GetLogLevel()
+}
