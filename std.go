@@ -1,51 +1,53 @@
 package printer
 
-var globalPrint = NewPrint(LevelDebug)
+import "os"
 
-func Printf(p string, a ...any) {
-	globalPrint.WriteToStdf(p, a...)
+var globalPrinter = NewPrint(LevelDebug, os.Stdin, os.Stdout, os.Stderr)
+
+func Printf(p string, a ...interface{}) {
+	globalPrinter.WriteToStdf(p, a...)
 }
 
 func Print(s string) {
-	globalPrint.WriteToStd([]byte(s))
+	globalPrinter.WriteToStd([]byte(s))
 }
 
 func PrintError(err error) {
 	if err == nil {
-		globalPrint.WriteToError([]byte("<nil>"))
+		globalPrinter.WriteToError([]byte("<nil>"))
 	} else {
-		globalPrint.WriteToError([]byte(err.Error()))
+		globalPrinter.WriteToError([]byte(err.Error()))
 	}
 }
 
 func PrintErrorS(err string) {
-	globalPrint.WriteToError([]byte(err))
+	globalPrinter.WriteToError([]byte(err))
 }
 
-func PrintErrorSf(err string, args ...any) {
-	globalPrint.WriteToErrf(err, args...)
+func PrintErrorSf(err string, args ...interface{}) {
+	globalPrinter.WriteToErrf(err, args...)
 }
 
-func Error(format string, a ...interface{}) {
-	globalPrint.Error(format, a...)
+func Errorf(format string, a ...interface{}) {
+	globalPrinter.Errorf(format, a...)
 }
 
-func Warn(format string, a ...interface{}) {
-	globalPrint.Warn(format, a...)
+func Warnf(format string, a ...interface{}) {
+	globalPrinter.Warnf(format, a...)
 }
 
-func Info(format string, a ...interface{}) {
-	globalPrint.Info(format, a...)
+func Infof(format string, a ...interface{}) {
+	globalPrinter.Infof(format, a...)
 }
 
-func Debug(format string, a ...interface{}) {
-	globalPrint.Debug(format, a...)
+func Debugf(format string, a ...interface{}) {
+	globalPrinter.Debugf(format, a...)
 }
 
 func SetLogLevel(level int) {
-	globalPrint.SetLogLevel(level)
+	globalPrinter.SetLogLevel(level)
 }
 
 func GetLogLevel() int {
-	return globalPrint.GetLogLevel()
+	return globalPrinter.GetLogLevel()
 }

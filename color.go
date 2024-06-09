@@ -1,7 +1,5 @@
 package printer
 
-import "regexp"
-
 const (
 	Reset = iota
 	Bold
@@ -33,8 +31,7 @@ const (
 )
 
 var (
-	colorFinderRegex = regexp.MustCompile(`\{-?([\w,_]*)\}`)
-	colorValues      = map[string]int{
+	colorValues = map[string]int{
 		"black":   0,
 		"red":     1,
 		"green":   2,
