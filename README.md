@@ -91,7 +91,8 @@ The package supports color formatting using special tags:
 
 - Foreground Colors: `F_<color>`
 - Background Colors: `B_<color>`
-- Options: `BOLD`, `FAINT`, `UNDERLINED`, `SLOWBLINK`
+- Options: `BOLD`, `FAINT`, `UNDERLINED`, `SLOWBLINK`, `RESET`
+- Colors: `BLACK`, `RED`, `GREEN`, `YELLOW`, `BLUE`, `MAGENTA`, `CYAN`, `WHITE`
 
 Example:
 
@@ -99,38 +100,6 @@ Example:
 message := "{{{-F_RED,BOLD}}}This is a bold red message{{{-RESET}}}"
 printer.Print(message)
 ```
-
-### Available Colors
-
-The following colors are supported:
-
-#### Foreground Colors
-- `black`
-- `red`
-- `green`
-- `yellow`
-- `blue`
-- `magenta`
-- `cyan`
-- `white`
-
-#### Background Colors
-- `B_black`
-- `B_red`
-- `B_green`
-- `B_yellow`
-- `B_blue`
-- `B_magenta`
-- `B_cyan`
-- `B_white`
-
-#### Options
-- `reset`
-- `bold`
-- `faint`
-- `underlined`
-- `slowBlink`
-
 ## Contributing
 
 Contributions are welcome! Please fork the repository and submit a pull request.
