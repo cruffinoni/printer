@@ -51,3 +51,11 @@ func SetLogLevel(level int) {
 func GetLogLevel() int {
 	return globalPrinter.GetLogLevel()
 }
+
+func WithField(key string, value interface{}) *Printer {
+	return globalPrinter.WithField(key, value)
+}
+
+func WithFields(fields map[string]interface{}) *Printer {
+	return globalPrinter.WithFields(fields)
+}

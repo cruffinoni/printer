@@ -17,7 +17,10 @@ type Printer struct {
 	logLevel int
 	flags    int
 	mx       *sync.RWMutex
+	fields   LogFields
 }
+
+type LogFields map[string]interface{}
 
 const (
 	FlagWithDate = 1 << iota
@@ -33,6 +36,7 @@ func NewPrint(loglevel int, flags int, in, out, err *os.File) *Printer {
 		logLevel: loglevel,
 		flags:    flags | FlagWithColor,
 		mx:       &sync.RWMutex{},
+		fields:   make(LogFields),
 	}
 }
 
@@ -220,5 +224,19 @@ func (l *Printer) Close() error {
 func (l *Printer) DisableColor() *Printer {
 	newPrinter := *l
 	newPrinter.flags &^= FlagWithColor
+	return &newPrinter
+}
+
+func (l *Printer) WithField(key string, value interface{}) *Printer {
+	newPrinter := *l
+	newPrinter.fields[key] = value
+	return &newPrinter
+}
+
+func (l *Printer) WithFields(fields map[string]interface{}) *Printer {
+	newPrinter := *l
+	for key, value := range fields {
+		newPrinter.fields[key] = value
+	}
 	return &newPrinter
 }

@@ -61,3 +61,23 @@ func TestCombinedFlags(t *testing.T) {
 	p := NewPrint(LevelDebug, FlagWithDate|FlagWithGoroutineID|FlagWithColor, os.Stdin, os.Stdout, os.Stderr)
 	p.Infof("This is a test message with combined flags")
 }
+
+func TestWithField(t *testing.T) {
+	p := NewPrint(LevelDebug, FlagWithDate|FlagWithGoroutineID|FlagWithColor, os.Stdin, os.Stdout, os.Stderr)
+	p = p.WithField("key", "value")
+	if p.fields["key"] != "value" {
+		t.Error("WithField() failed to add the field")
+	}
+}
+
+func TestWithFields(t *testing.T) {
+	p := NewPrint(LevelDebug, FlagWithDate|FlagWithGoroutineID|FlagWithColor, os.Stdin, os.Stdout, os.Stderr)
+	fields := map[string]interface{}{
+		"key1": "value1",
+		"key2": "value2",
+	}
+	p = p.WithFields(fields)
+	if p.fields["key1"] != "value1" || p.fields["key2"] != "value2" {
+		t.Error("WithFields() failed to add the fields")
+	}
+}

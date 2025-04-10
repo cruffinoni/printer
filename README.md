@@ -8,6 +8,7 @@ The `printer` package provides a comprehensive logging utility with color format
 - Color formatting for log messages.
 - Thread-safe logging.
 - Global printer instance for easy logging.
+- Structured logging with fields.
 
 ## Installation
 
@@ -59,6 +60,30 @@ printer.Errorf("Formatted error message: %s", "error details")
 printer.Warnf("Warning message")
 printer.Infof("Info message")
 printer.Debugf("Debug message")
+```
+
+### Structured Logging
+
+The `Printer` struct supports structured logging with fields. You can add fields to log entries using the `WithField` and `WithFields` methods.
+
+#### Adding a Single Field
+
+To add a single field to a log entry, use the `WithField` method:
+
+```go
+printer.WithField("key", "value").Infof("This is an info message with a field")
+```
+
+#### Adding Multiple Fields
+
+To add multiple fields to a log entry, use the `WithFields` method:
+
+```go
+fields := map[string]interface{}{
+    "key1": "value1",
+    "key2": "value2",
+}
+printer.WithFields(fields).Infof("This is an info message with multiple fields")
 ```
 
 ### Setting and Getting Log Level
