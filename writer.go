@@ -18,8 +18,15 @@ type Printer struct {
 	out      io.WriteCloser // Output stream for standard messages
 	err      io.WriteCloser // Output stream for error messages
 	logLevel int            // Current logging level
+	flags    int
 	mx       sync.Mutex     // Mutex for synchronized writes
 }
+
+const (
+	FlagWithDate = 1 << iota
+	FlagWithGoroutineID
+	FlagWithColor
+)
 
 // NewPrint creates a new Printer instance with specified log level and I/O streams.
 //
@@ -30,11 +37,12 @@ type Printer struct {
 //
 // Returns:
 //   - *Printer: A new Printer instance.
-func NewPrint(loglevel int, out, err io.WriteCloser) *Printer {
+func NewPrint(loglevel, flags int, out, err io.WriteCloser) *Printer {
 	return &Printer{
 		out:      out,
 		err:      err,
 		logLevel: loglevel,
+		flags:    flags | FlagWithColor,
 		mx:       sync.Mutex{},
 	}
 }
@@ -69,6 +77,9 @@ var colorFinderRegex = regexp.MustCompile(`\{{3}-?([\w,_]*)}{3}`)
 // Returns:
 //   - []byte: The buffer with color formatting tokens replaced by ANSI codes.
 func (p *Printer) formatColor(buffer []byte) []byte {
+	if l.flags&FlagWithColor == 0 {
+		return buffer
+	}
 	f := colorFinderRegex.FindAllSubmatch(buffer, -1)
 	if f == nil {
 		return buffer
@@ -195,7 +206,21 @@ func (p *Printer) GetLogLevel() int {
 // Returns:
 //   - string: The formatted log prefix.
 func (p *Printer) formatPrefix(level string) string {
-	return fmt.Sprintf("[%03d | %s | %s]", getGoroutineID(), time.Now().Format("15:04:05.000"), level)
+	prefix := ""
+	if l.flags&FlagWithGoroutineID != 0 {
+		prefix += fmt.Sprintf("[%03d", getGoroutineID())
+	}
+	if l.flags&FlagWithDate != 0 {
+		if prefix != "" {
+			prefix += " | "
+		}
+		prefix += time.Now().Format("15:04:05.000")
+	}
+	if prefix != "" {
+		prefix += " | "
+	}
+	prefix += level
+	return prefix
 }
 
 // Errorf logs an error message if the log level permits.
@@ -268,4 +293,10 @@ func (p *Printer) Close() error {
 		p.err = nil
 	}
 	return nil
+}
+
+func (l *Printer) DisableColor() *Printer {
+	newPrinter := *l
+	newPrinter.flags &^= FlagWithColor
+	return &newPrinter
 }

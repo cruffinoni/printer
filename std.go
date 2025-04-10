@@ -6,7 +6,7 @@ import (
 )
 
 // globalPrinter is the default Printer instance used by global logging functions.
-var globalPrinter = NewPrint(LevelDebug, os.Stdout, os.Stderr)
+var globalPrinter = NewPrint(LevelDebug,  FlagWithDate|FlagWithGoroutineID|FlagWithColor, os.Stdout, os.Stderr)
 
 // Printf formats and writes a message to the standard output stream using the global printer.
 //
