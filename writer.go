@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type Writer struct {
+type Printer struct {
 	out      *os.File
 	in       *os.File
 	err      *os.File
@@ -18,8 +18,8 @@ type Writer struct {
 	mx       *sync.RWMutex
 }
 
-func NewPrint(loglevel int, in, out, err *os.File) *Writer {
-	return &Writer{
+func NewPrint(loglevel int, in, out, err *os.File) *Printer {
+	return &Printer{
 		out:      out,
 		in:       in,
 		err:      err,
@@ -48,7 +48,7 @@ var bufferPool = sync.Pool{
 
 var colorFinderRegex = regexp.MustCompile(`\{{3}-?([\w,_]*)}{3}`)
 
-func (l *Writer) formatColor(buffer []byte) []byte {
+func (l *Printer) formatColor(buffer []byte) []byte {
 	f := colorFinderRegex.FindAllSubmatch(buffer, -1)
 	if f == nil {
 		return buffer
@@ -97,15 +97,15 @@ func (l *Writer) formatColor(buffer []byte) []byte {
 	return buffer
 }
 
-func (l *Writer) WriteToError(b []byte) {
+func (l *Printer) WriteToError(b []byte) {
 	l.write(append([]byte("{{{-F_RED,BOLD}}}Error:{{{-RESET}}} "), b...), l.err)
 }
 
-func (l *Writer) WriteToStd(b []byte) {
+func (l *Printer) WriteToStd(b []byte) {
 	l.write(b, l.out)
 }
 
-func (l *Writer) write(b []byte, out *os.File) {
+func (l *Printer) write(b []byte, out *os.File) {
 	l.mx.RLock()
 	b = l.formatColor(b)
 	defer l.mx.RUnlock()
@@ -119,52 +119,74 @@ func (l *Writer) write(b []byte, out *os.File) {
 	}
 }
 
-func (l *Writer) WriteToStdf(format string, a ...any) {
+func (l *Printer) WriteToStdf(format string, a ...any) {
 	b := []byte(fmt.Sprintf(format, a...))
 	l.write(b, l.out)
 }
 
-func (l *Writer) WriteToErrf(format string, a ...any) {
+func (l *Printer) WriteToErrf(format string, a ...any) {
 	b := []byte(fmt.Sprintf(format, a...))
 	l.WriteToError(b)
 }
 
-func (l *Writer) SetLogLevel(level int) {
+func (l *Printer) SetLogLevel(level int) {
 	l.logLevel = level
 }
 
-func (l *Writer) GetLogLevel() int {
+func (l *Printer) GetLogLevel() int {
 	return l.logLevel
 }
 
-func (l *Writer) formatPrefix(level string) string {
+func (l *Printer) formatPrefix(level string) string {
 	return fmt.Sprintf("[%03d | %s | %s]", getGoroutineID(), time.Now().Format("15:04:05.000"), level)
 }
 
-func (l *Writer) Errorf(format string, a ...interface{}) {
+func (l *Printer) Errorf(format string, a ...interface{}) {
 	if l.logLevel >= LevelError {
 		msg := fmt.Sprintf("{{{-F_RED,BOLD}}}"+l.formatPrefix("ERROR")+" {{{-RESET}}}"+format, a...)
 		l.write([]byte(msg), l.err)
 	}
 }
 
-func (l *Writer) Warnf(format string, a ...interface{}) {
+func (l *Printer) Warnf(format string, a ...interface{}) {
 	if l.logLevel >= LevelWarn {
 		msg := fmt.Sprintf("{{{-F_YELLOW,BOLD}}}"+l.formatPrefix("WARN")+" {{{-RESET}}}"+format, a...)
 		l.write([]byte(msg), l.out)
 	}
 }
 
-func (l *Writer) Infof(format string, a ...interface{}) {
+func (l *Printer) Infof(format string, a ...interface{}) {
 	if l.logLevel >= LevelInfo {
 		msg := fmt.Sprintf("{{{-F_BLUE,BOLD}}}"+l.formatPrefix("INFO")+" {{{-RESET}}}"+format, a...)
 		l.write([]byte(msg), l.out)
 	}
 }
 
-func (l *Writer) Debugf(format string, a ...interface{}) {
+func (l *Printer) Debugf(format string, a ...interface{}) {
 	if l.logLevel >= LevelDebug {
 		msg := fmt.Sprintf("{{{-F_CYAN,BOLD}}}"+l.formatPrefix("DEBUG")+" {{{-RESET}}}"+format, a...)
 		l.write([]byte(msg), l.out)
 	}
+}
+
+func (l *Printer) Close() error {
+	if l.out != nil {
+		err := l.out.Close()
+		if err != nil {
+			return err
+		}
+	}
+	if l.err != nil {
+		err := l.err.Close()
+		if err != nil {
+			return err
+		}
+	}
+	if l.in != nil {
+		err := l.in.Close()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

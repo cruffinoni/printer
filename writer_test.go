@@ -32,3 +32,11 @@ func TestFormatColor(t *testing.T) {
 	res := p.formatColor(buffer)
 	log.Printf("res: %s", res)
 }
+
+func TestClose(t *testing.T) {
+	p := NewPrint(LevelDebug, nil, nil, nil)
+	err := p.Close()
+	if err != nil {
+		t.Error("Close() failed")
+	}
+}
