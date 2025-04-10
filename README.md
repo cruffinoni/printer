@@ -29,7 +29,7 @@ import (
     "github.com/cruffinoni/printer"
 )
 
-printer := printer.NewPrint(printer.LevelDebug, os.Stdin, os.Stdout, os.Stderr)
+printer := printer.NewPrint(printer.LevelDebug, printer.FlagWithDate|printer.FlagWithGoroutineID, os.Stdin, os.Stdout, os.Stderr)
 ```
 
 ### Logging Methods
@@ -85,6 +85,20 @@ err := printer.Close()
 if err != nil {
     fmt.Println("Error closing printer:", err)
 }
+```
+
+### Flags
+
+The `Printer` struct includes flags to control the logging behavior. The available flags are:
+
+- `FlagWithDate`: Include the current date and time in log messages.
+- `FlagWithGoroutineID`: Include the goroutine ID in log messages.
+- `FlagWithColor`: Enable color formatting in log messages (enabled by default).
+
+To create a new `Printer` instance with specific flags, use the `NewPrint` function and combine the flags using the bitwise OR operator (`|`):
+
+```go
+printer := printer.NewPrint(printer.LevelDebug, printer.FlagWithDate|printer.FlagWithGoroutineID, os.Stdin, os.Stdout, os.Stderr)
 ```
 
 ## Log Levels

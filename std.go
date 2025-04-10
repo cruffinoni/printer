@@ -2,7 +2,7 @@ package printer
 
 import "os"
 
-var globalPrinter = NewPrint(LevelDebug, os.Stdin, os.Stdout, os.Stderr)
+var globalPrinter = NewPrint(LevelDebug, FlagWithDate|FlagWithGoroutineID|FlagWithColor, os.Stdin, os.Stdout, os.Stderr)
 
 func Printf(p string, a ...interface{}) {
 	globalPrinter.WriteToStdf(p, a...)

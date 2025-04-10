@@ -15,15 +15,23 @@ type Printer struct {
 	in       *os.File
 	err      *os.File
 	logLevel int
+	flags    int
 	mx       *sync.RWMutex
 }
 
-func NewPrint(loglevel int, in, out, err *os.File) *Printer {
+const (
+	FlagWithDate = 1 << iota
+	FlagWithGoroutineID
+	FlagWithColor
+)
+
+func NewPrint(loglevel int, flags int, in, out, err *os.File) *Printer {
 	return &Printer{
 		out:      out,
 		in:       in,
 		err:      err,
 		logLevel: loglevel,
+		flags:    flags | FlagWithColor,
 		mx:       &sync.RWMutex{},
 	}
 }
@@ -49,6 +57,10 @@ var bufferPool = sync.Pool{
 var colorFinderRegex = regexp.MustCompile(`\{{3}-?([\w,_]*)}{3}`)
 
 func (l *Printer) formatColor(buffer []byte) []byte {
+	if l.flags&FlagWithColor == 0 {
+		return buffer
+	}
+
 	f := colorFinderRegex.FindAllSubmatch(buffer, -1)
 	if f == nil {
 		return buffer
@@ -138,7 +150,21 @@ func (l *Printer) GetLogLevel() int {
 }
 
 func (l *Printer) formatPrefix(level string) string {
-	return fmt.Sprintf("[%03d | %s | %s]", getGoroutineID(), time.Now().Format("15:04:05.000"), level)
+	prefix := ""
+	if l.flags&FlagWithGoroutineID != 0 {
+		prefix += fmt.Sprintf("[%03d", getGoroutineID())
+	}
+	if l.flags&FlagWithDate != 0 {
+		if prefix != "" {
+			prefix += " | "
+		}
+		prefix += time.Now().Format("15:04:05.000")
+	}
+	if prefix != "" {
+		prefix += " | "
+	}
+	prefix += level
+	return prefix
 }
 
 func (l *Printer) Errorf(format string, a ...interface{}) {
@@ -189,4 +215,10 @@ func (l *Printer) Close() error {
 		}
 	}
 	return nil
+}
+
+func (l *Printer) DisableColor() *Printer {
+	newPrinter := *l
+	newPrinter.flags &^= FlagWithColor
+	return &newPrinter
 }
