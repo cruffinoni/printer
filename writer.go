@@ -255,14 +255,17 @@ func (p *Printer) Debugf(format string, a ...interface{}) {
 // Returns:
 //   - error: An error encountered during the close operation, or nil if all streams are closed successfully.
 func (p *Printer) Close() error {
-	fs := []*io.WriteCloser{&p.out, &p.err}
-	for i := range fs {
-		if fs[i] != nil {
-			if err := (*fs[i]).Close(); err != nil {
-				return err
-			}
+	if p.out != nil {
+		if err := p.out.Close(); err != nil {
+			return err
 		}
-		fs[i] = nil
+		p.out = nil
+	}
+	if p.err != nil {
+		if err := p.err.Close(); err != nil {
+			return err
+		}
+		p.err = nil
 	}
 	return nil
 }
