@@ -79,7 +79,7 @@ printer.WithField("key", "value").Infof("This is an info message with a field")
 To add multiple fields to a log entry, use the `WithFields` method:
 
 ```go
-fields := map[string]any{
+fields := printer.LogFields{
     "key1": "value1",
     "key2": "value2",
 }
@@ -123,7 +123,7 @@ The `Printer` struct includes flags to control the logging behavior. The availab
 To create a new `Printer` instance with specific flags, use the `NewPrint` function and combine the flags using the bitwise OR operator (`|`):
 
 ```go
-printer := printer.NewPrint(printer.LevelDebug, printer.FlagWithDate|printer.FlagWithGoroutineID, os.Stdin, os.Stdout, os.Stderr)
+printer := printer.NewPrint(printer.LevelDebug, printer.FlagWithDate|printer.FlagWithGoroutineID, os.Stdout, os.Stderr)
 ```
 
 ## Log Levels
@@ -147,8 +147,7 @@ The package supports color formatting using special tags:
 Example:
 
 ```go
-message := "{{{-F_RED,BOLD}}}This is a bold red message{{{-RESET}}}"
-printer.Print(message)
+printer.Print("{{{-F_RED,BOLD}}}This is a bold red message{{{-RESET}}}")
 ```
 ## Contributing
 

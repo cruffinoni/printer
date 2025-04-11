@@ -106,10 +106,25 @@ func GetLogLevel() Levels {
 	return globalPrinter.GetLogLevel()
 }
 
+// WithField adds a single key-value pair to the global printer's context.
+//
+// Parameters:
+//   - key: string - The key for the field.
+//   - value: any - The value associated with the key.
+//
+// Returns:
+//   - *Printer: A new Printer instance with the added field.
 func WithField(key string, value any) *Printer {
 	return globalPrinter.WithField(key, value)
 }
 
-func WithFields(fields map[string]any) *Printer {
+// WithFields adds multiple key-value pairs to the global printer's context.
+//
+// Parameters:
+//   - fields: LogFields - A map containing the fields to add.
+//
+// Returns:
+//   - *Printer: A new Printer instance with the added fields.
+func WithFields(fields LogFields) *Printer {
 	return globalPrinter.WithFields(fields)
 }

@@ -288,11 +288,11 @@ func (p *Printer) Close() error {
 	return nil
 }
 
-// deepCopy creates a new Printer instance with the same configuration as the current one.
+// Copy creates a new Printer instance with the same configuration as the current one.
 //
 // Returns:
 //   - *Printer: A new Printer instance with the same configuration.
-func (p *Printer) deepCopy() *Printer {
+func (p *Printer) Copy() *Printer {
 	cpyPrinter := &Printer{
 		out:      p.out,
 		err:      p.err,
@@ -310,7 +310,7 @@ func (p *Printer) deepCopy() *Printer {
 // Returns:
 //   - *Printer: A new Printer instance with the color flag disabled.
 func (p *Printer) DisableColor() *Printer {
-	newPrinter := p.deepCopy()
+	newPrinter := p.Copy()
 	newPrinter.flags &^= FlagWithColor
 	return newPrinter
 }
@@ -327,7 +327,7 @@ func (p *Printer) DisableColor() *Printer {
 // Returns:
 //   - *Printer: A new Printer instance with the added field.
 func (p *Printer) WithField(key string, value any) *Printer {
-	newPrinter := p.deepCopy()
+	newPrinter := p.Copy()
 	newPrinter.fields[key] = value
 	return newPrinter
 }
@@ -343,7 +343,7 @@ func (p *Printer) WithField(key string, value any) *Printer {
 // Returns:
 //   - *Printer: A new Printer instance with the added fields.
 func (p *Printer) WithFields(fields LogFields) *Printer {
-	newPrinter := p.deepCopy()
+	newPrinter := p.Copy()
 	for key, value := range fields {
 		newPrinter.fields[key] = value
 	}
