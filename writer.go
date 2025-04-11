@@ -15,11 +15,11 @@ import (
 // Printer provides structured output to various I/O streams with support for
 // log levels, colored output, and concurrency-safe operations.
 type Printer struct {
-	out      io.WriteCloser // Output stream for standard messages
-	err      io.WriteCloser // Output stream for error messages
-	logLevel Levels         // Current logging level
+	out      io.WriteCloser
+	err      io.WriteCloser
+	logLevel Levels
 	flags    Flags
-	mx       sync.Mutex // Mutex for synchronized writes
+	mx       sync.Mutex
 }
 
 // NewPrint creates a new Printer instance with specified log level and I/O streams.
