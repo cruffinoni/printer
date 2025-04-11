@@ -79,7 +79,7 @@ printer.WithField("key", "value").Infof("This is an info message with a field")
 To add multiple fields to a log entry, use the `WithFields` method:
 
 ```go
-fields := map[string]interface{}{
+fields := map[string]any{
     "key1": "value1",
     "key2": "value2",
 }

@@ -6,11 +6,15 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"maps"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
 )
+
+// LogFields represents a map of log fields for structured logging.
+type LogFields map[string]any
 
 // Printer provides structured output to various I/O streams with support for
 // log levels, colored output, and concurrency-safe operations.
@@ -20,6 +24,7 @@ type Printer struct {
 	logLevel Levels
 	flags    Flags
 	mx       sync.Mutex
+	fields   LogFields
 }
 
 // NewPrint creates a new Printer instance with specified log level and I/O streams.
@@ -49,7 +54,7 @@ const (
 
 // bufferPool provides reusable byte buffers to reduce memory allocations.
 var bufferPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return &bytes.Buffer{}
 	},
 }
@@ -215,8 +220,8 @@ func (p *Printer) formatPrefix(level string) string {
 //
 // Parameters:
 //   - format: string - The format string.
-//   - a: ...interface{} - The arguments to format.
-func (p *Printer) Errorf(format string, a ...interface{}) {
+//   - a: ...any - The arguments to format.
+func (p *Printer) Errorf(format string, a ...any) {
 	if p.logLevel >= LevelError {
 		msg := fmt.Sprintf("{{{-F_RED,BOLD}}}"+p.formatPrefix("ERROR")+" {{{-RESET}}}"+format, a...)
 		p.WriteToErr([]byte(msg))
@@ -227,8 +232,8 @@ func (p *Printer) Errorf(format string, a ...interface{}) {
 //
 // Parameters:
 //   - format: string - The format string.
-//   - a: ...interface{} - The arguments to format.
-func (p *Printer) Warnf(format string, a ...interface{}) {
+//   - a: ...any - The arguments to format.
+func (p *Printer) Warnf(format string, a ...any) {
 	if p.logLevel >= LevelWarn {
 		msg := fmt.Sprintf("{{{-F_YELLOW,BOLD}}}"+p.formatPrefix("WARN")+" {{{-RESET}}}"+format, a...)
 		p.WriteToStd([]byte(msg))
@@ -239,8 +244,8 @@ func (p *Printer) Warnf(format string, a ...interface{}) {
 //
 // Parameters:
 //   - format: string - The format string.
-//   - a: ...interface{} - The arguments to format.
-func (p *Printer) Infof(format string, a ...interface{}) {
+//   - a: ...any - The arguments to format.
+func (p *Printer) Infof(format string, a ...any) {
 	if p.logLevel >= LevelInfo {
 		msg := fmt.Sprintf("{{{-F_BLUE,BOLD}}}"+p.formatPrefix("INFO")+" {{{-RESET}}}"+format, a...)
 		p.WriteToStd([]byte(msg))
@@ -251,8 +256,8 @@ func (p *Printer) Infof(format string, a ...interface{}) {
 //
 // Parameters:
 //   - format: string - The format string.
-//   - a: ...interface{} - The arguments to format.
-func (p *Printer) Debugf(format string, a ...interface{}) {
+//   - a: ...any - The arguments to format.
+func (p *Printer) Debugf(format string, a ...any) {
 	if p.logLevel >= LevelDebug {
 		msg := fmt.Sprintf("{{{-F_CYAN,BOLD}}}"+p.formatPrefix("DEBUG")+" {{{-RESET}}}"+format, a...)
 		p.WriteToStd([]byte(msg))
@@ -283,38 +288,21 @@ func (p *Printer) Close() error {
 	return nil
 }
 
-func (l *Printer) DisableColor() *Printer {
-	newPrinter := *l
-	newPrinter.flags &^= FlagWithColor
-	return &newPrinter
-}
-
-func (l *Printer) WithField(key string, value interface{}) *Printer {
-	newPrinter := *l
-	newPrinter.fields[key] = value
-	return &newPrinter
-}
-
-func (l *Printer) WithFields(fields map[string]interface{}) *Printer {
-	newPrinter := *l
-	for key, value := range fields {
-		newPrinter.fields[key] = value
-	}
-	return &newPrinter
-}
-
 // deepCopy creates a new Printer instance with the same configuration as the current one.
 //
 // Returns:
 //   - *Printer: A new Printer instance with the same configuration.
 func (p *Printer) deepCopy() *Printer {
-	return &Printer{
+	cpyPrinter := &Printer{
 		out:      p.out,
 		err:      p.err,
 		logLevel: p.logLevel,
 		flags:    p.flags,
 		mx:       sync.Mutex{},
+		fields:   make(LogFields),
 	}
+	maps.Copy(cpyPrinter.fields, p.fields)
+	return cpyPrinter
 }
 
 // DisableColor creates a new Printer instance with color output disabled.
@@ -324,5 +312,40 @@ func (p *Printer) deepCopy() *Printer {
 func (p *Printer) DisableColor() *Printer {
 	newPrinter := p.deepCopy()
 	newPrinter.flags &^= FlagWithColor
+	return newPrinter
+}
+
+// WithField creates a new Printer instance with an additional single field.
+//
+// This method performs a deep copy of the current Printer instance and adds
+// the specified key-value pair to the fields map of the new instance.
+//
+// Parameters:
+//   - key: string - The key for the new field.
+//   - value: any - The value for the new field.
+//
+// Returns:
+//   - *Printer: A new Printer instance with the added field.
+func (p *Printer) WithField(key string, value any) *Printer {
+	newPrinter := p.deepCopy()
+	newPrinter.fields[key] = value
+	return newPrinter
+}
+
+// WithFields creates a new Printer instance with additional fields.
+//
+// This method performs a deep copy of the current Printer instance and adds
+// the specified key-value pairs to the fields map of the new instance.
+//
+// Parameters:
+//   - fields: LogFields - A map of key-value pairs to add to the fields.
+//
+// Returns:
+//   - *Printer: A new Printer instance with the added fields.
+func (p *Printer) WithFields(fields LogFields) *Printer {
+	newPrinter := p.deepCopy()
+	for key, value := range fields {
+		newPrinter.fields[key] = value
+	}
 	return newPrinter
 }
