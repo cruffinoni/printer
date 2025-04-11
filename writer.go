@@ -1,9 +1,11 @@
+// Package printer provides a concurrency-safe, color-formatted logging utility with
+// support for multiple log levels and configurable output streams.
 package printer
 
 import (
 	"bytes"
 	"fmt"
-	"os"
+	"io"
 	"regexp"
 	"strings"
 	"sync"
@@ -13,27 +15,24 @@ import (
 // Printer provides structured output to various I/O streams with support for
 // log levels, colored output, and concurrency-safe operations.
 type Printer struct {
-	out      *os.File   // Output stream for standard messages
-	in       *os.File   // Input stream, if applicable
-	err      *os.File   // Output stream for error messages
-	logLevel int        // Current logging level
-	mx       sync.Mutex // Mutex for synchronized writes
+	out      io.WriteCloser // Output stream for standard messages
+	err      io.WriteCloser // Output stream for error messages
+	logLevel int            // Current logging level
+	mx       sync.Mutex     // Mutex for synchronized writes
 }
 
 // NewPrint creates a new Printer instance with specified log level and I/O streams.
 //
 // Parameters:
 //   - loglevel: int - The initial logging level.
-//   - in: *os.File - The input stream (can be nil if not applicable).
-//   - out: *os.File - The output stream for standard messages.
-//   - err: *os.File - The output stream for error messages.
+//   - out: io.WriteCloser - The output stream for standard messages.
+//   - err: io.WriteCloser - The output stream for error messages.
 //
 // Returns:
 //   - *Printer: A new Printer instance.
-func NewPrint(loglevel int, in, out, err *os.File) *Printer {
+func NewPrint(loglevel int, out, err io.WriteCloser) *Printer {
 	return &Printer{
 		out:      out,
-		in:       in,
 		err:      err,
 		logLevel: loglevel,
 		mx:       sync.Mutex{},
@@ -118,12 +117,24 @@ func (p *Printer) formatColor(buffer []byte) []byte {
 	return buffer
 }
 
-// WriteToError writes a formatted error message to the error output stream.
+// writeTo writes a byte slice to the specified output stream with formatting and locking.
 //
 // Parameters:
-//   - b: []byte - The error message to write.
-func (p *Printer) WriteToError(b []byte) {
-	p.write(append([]byte("{{{-F_RED,BOLD}}}Error:{{{-RESET}}} "), b...), p.err)
+//   - b: []byte - The data to write.
+//   - writer: io.Writer - The output stream to write to.
+//
+// Returns:
+//   - int: Number of bytes written.
+//   - error: Error encountered during write, if any.
+func (p *Printer) writeTo(b []byte, writer io.Writer) (int, error) {
+	p.mx.Lock()
+	defer p.mx.Unlock()
+	b = p.formatColor(b)
+	bt := []byte("\n")
+	if !bytes.HasSuffix(b, bt) {
+		b = append(b, bt...)
+	}
+	return writer.Write(b)
 }
 
 // WriteToStd writes a raw message to the standard output stream.
@@ -131,7 +142,21 @@ func (p *Printer) WriteToError(b []byte) {
 // Parameters:
 //   - b: []byte - The message to write.
 func (p *Printer) WriteToStd(b []byte) {
-	p.write(b, p.out)
+	_, err := p.writeTo(b, p.out)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// WriteToErr writes a raw message to the error output stream.
+//
+// Parameters:
+//   - b: []byte - The message to write.
+func (p *Printer) WriteToErr(b []byte) {
+	_, err := p.writeTo(b, p.err)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // Write writes a byte slice to the standard output stream.
@@ -140,52 +165,10 @@ func (p *Printer) WriteToStd(b []byte) {
 //   - buffer: []byte - The data to write.
 //
 // Returns:
-//   - n: int - The number of bytes written.
-//   - err: error - Any error encountered during the write operation.
+//   - int: Number of bytes written.
+//   - error: Error encountered during write.
 func (p *Printer) Write(buffer []byte) (n int, err error) {
-	if p.out != nil {
-		n, err = p.out.Write(buffer)
-	}
-	return
-}
-
-// write writes a byte slice to the specified output stream with formatting and locking.
-//
-// Parameters:
-//   - b: []byte - The data to write.
-//   - out: *os.File - The output stream to write to.
-func (p *Printer) write(b []byte, out *os.File) {
-	p.mx.Lock()
-	defer p.mx.Unlock()
-	b = p.formatColor(b)
-	bt := []byte("\n")
-	if !bytes.HasSuffix(b, bt) {
-		b = append(b, bt...)
-	}
-	_, err := out.Write(b)
-	if err != nil {
-		panic(err)
-	}
-}
-
-// WriteToStdf formats a message using fmt.Sprintf and writes it to the standard output stream.
-//
-// Parameters:
-//   - format: string - The format string.
-//   - a: ...any - The arguments to format.
-func (p *Printer) WriteToStdf(format string, a ...any) {
-	b := []byte(fmt.Sprintf(format, a...))
-	p.write(b, p.out)
-}
-
-// WriteToErrf formats a message using fmt.Sprintf and writes it to the error output stream.
-//
-// Parameters:
-//   - format: string - The format string.
-//   - a: ...any - The arguments to format.
-func (p *Printer) WriteToErrf(format string, a ...any) {
-	b := []byte(fmt.Sprintf(format, a...))
-	p.WriteToError(b)
+	return p.writeTo(buffer, p.out)
 }
 
 // SetLogLevel updates the log level of the Printer.
@@ -223,7 +206,7 @@ func (p *Printer) formatPrefix(level string) string {
 func (p *Printer) Errorf(format string, a ...interface{}) {
 	if p.logLevel >= LevelError {
 		msg := fmt.Sprintf("{{{-F_RED,BOLD}}}"+p.formatPrefix("ERROR")+" {{{-RESET}}}"+format, a...)
-		p.write([]byte(msg), p.err)
+		p.WriteToErr([]byte(msg))
 	}
 }
 
@@ -235,7 +218,7 @@ func (p *Printer) Errorf(format string, a ...interface{}) {
 func (p *Printer) Warnf(format string, a ...interface{}) {
 	if p.logLevel >= LevelWarn {
 		msg := fmt.Sprintf("{{{-F_YELLOW,BOLD}}}"+p.formatPrefix("WARN")+" {{{-RESET}}}"+format, a...)
-		p.write([]byte(msg), p.out)
+		p.WriteToStd([]byte(msg))
 	}
 }
 
@@ -247,7 +230,7 @@ func (p *Printer) Warnf(format string, a ...interface{}) {
 func (p *Printer) Infof(format string, a ...interface{}) {
 	if p.logLevel >= LevelInfo {
 		msg := fmt.Sprintf("{{{-F_BLUE,BOLD}}}"+p.formatPrefix("INFO")+" {{{-RESET}}}"+format, a...)
-		p.write([]byte(msg), p.out)
+		p.WriteToStd([]byte(msg))
 	}
 }
 
@@ -259,32 +242,27 @@ func (p *Printer) Infof(format string, a ...interface{}) {
 func (p *Printer) Debugf(format string, a ...interface{}) {
 	if p.logLevel >= LevelDebug {
 		msg := fmt.Sprintf("{{{-F_CYAN,BOLD}}}"+p.formatPrefix("DEBUG")+" {{{-RESET}}}"+format, a...)
-		p.write([]byte(msg), p.out)
+		p.WriteToStd([]byte(msg))
 	}
 }
 
 // Close safely closes all associated I/O streams of the Printer.
 //
+// This method iterates over all associated I/O streams (`out` and `err`) and attempts to close them.
+// If any stream fails to close, the method returns the encountered error. If all streams are closed
+// successfully, it returns nil.
+//
 // Returns:
-//   - error: Any error encountered during the close operation, or nil if successful.
+//   - error: An error encountered during the close operation, or nil if all streams are closed successfully.
 func (p *Printer) Close() error {
-	if p.out != nil {
-		err := p.out.Close()
-		if err != nil {
-			return err
+	fs := []*io.WriteCloser{&p.out, &p.err}
+	for i := range fs {
+		if fs[i] != nil {
+			if err := (*fs[i]).Close(); err != nil {
+				return err
+			}
 		}
-	}
-	if p.err != nil {
-		err := p.err.Close()
-		if err != nil {
-			return err
-		}
-	}
-	if p.in != nil {
-		err := p.in.Close()
-		if err != nil {
-			return err
-		}
+		fs[i] = nil
 	}
 	return nil
 }
