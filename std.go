@@ -12,8 +12,8 @@ var globalPrinter = NewPrint(LevelDebug, FlagWithDate|FlagWithGoroutineID|FlagWi
 //
 // Parameters:
 //   - p: string - The format string.
-//   - a: ...interface{} - The arguments to format.
-func Printf(p string, a ...interface{}) {
+//   - a: ...any - The arguments to format.
+func Printf(p string, a ...any) {
 	globalPrinter.WriteToStd([]byte(fmt.Sprintf(p, a...)))
 }
 
@@ -49,8 +49,8 @@ func PrintErrorS(err string) {
 //
 // Parameters:
 //   - err: string - The format string.
-//   - args: ...interface{} - The arguments to format.
-func PrintErrorSf(err string, args ...interface{}) {
+//   - args: ...any - The arguments to format.
+func PrintErrorSf(err string, args ...any) {
 	globalPrinter.WriteToErr([]byte(fmt.Sprintf(err, args...)))
 }
 
@@ -58,8 +58,8 @@ func PrintErrorSf(err string, args ...interface{}) {
 //
 // Parameters:
 //   - format: string - The format string.
-//   - a: ...interface{} - The arguments to format.
-func Errorf(format string, a ...interface{}) {
+//   - a: ...any - The arguments to format.
+func Errorf(format string, a ...any) {
 	globalPrinter.Errorf(format, a...)
 }
 
@@ -67,8 +67,8 @@ func Errorf(format string, a ...interface{}) {
 //
 // Parameters:
 //   - format: string - The format string.
-//   - a: ...interface{} - The arguments to format.
-func Warnf(format string, a ...interface{}) {
+//   - a: ...any - The arguments to format.
+func Warnf(format string, a ...any) {
 	globalPrinter.Warnf(format, a...)
 }
 
@@ -76,8 +76,8 @@ func Warnf(format string, a ...interface{}) {
 //
 // Parameters:
 //   - format: string - The format string.
-//   - a: ...interface{} - The arguments to format.
-func Infof(format string, a ...interface{}) {
+//   - a: ...any - The arguments to format.
+func Infof(format string, a ...any) {
 	globalPrinter.Infof(format, a...)
 }
 
@@ -85,8 +85,8 @@ func Infof(format string, a ...interface{}) {
 //
 // Parameters:
 //   - format: string - The format string.
-//   - a: ...interface{} - The arguments to format.
-func Debugf(format string, a ...interface{}) {
+//   - a: ...any - The arguments to format.
+func Debugf(format string, a ...any) {
 	globalPrinter.Debugf(format, a...)
 }
 
@@ -104,4 +104,12 @@ func SetLogLevel(level Levels) {
 //   - int: The current global log level.
 func GetLogLevel() Levels {
 	return globalPrinter.GetLogLevel()
+}
+
+func WithField(key string, value any) *Printer {
+	return globalPrinter.WithField(key, value)
+}
+
+func WithFields(fields map[string]any) *Printer {
+	return globalPrinter.WithFields(fields)
 }
