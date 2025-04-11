@@ -49,7 +49,7 @@ func TestPrinter(t *testing.T) {
 
 	// Create a Printer with initial log level LevelDebug and flags that enable
 	// colored output and timestamp.
-	p := NewPrint(LevelDebug, FlagWithColor|FlagWithDate, stdOut, errOut)
+	p := NewPrinter(LevelDebug, FlagWithColor|FlagWithDate, stdOut, errOut)
 
 	// Group sub-tests in a map for clarity.
 	tests := map[string]func(t *testing.T){
@@ -101,10 +101,10 @@ func TestPrinter(t *testing.T) {
 			assert.Equal(t, LevelDebug, p.GetLogLevel())
 		},
 
-		// Test DisableColor: the returned Printer should have the FlagWithColor bit disabled.
-		"DisableColor": func(t *testing.T) {
+		// Test WithoutColor: the returned Printer should have the FlagWithColor bit disabled.
+		"WithoutColor": func(t *testing.T) {
 			// p already has FlagWithColor enabled. Create a new printer instance with color disabled.
-			pNoColor := p.DisableColor()
+			pNoColor := p.WithoutColor()
 			// As our dummy flags are just bit masks, ensure that the FlagWithColor bit is not set.
 			assert.Equal(t, p.flags&FlagWithColor, FlagWithColor) // original has color enabled
 			assert.Equal(t, pNoColor.flags&FlagWithColor, Flags(0))
@@ -145,7 +145,7 @@ func TestPrinter(t *testing.T) {
 			dOut := &dummyWC{}
 			dErr := &dummyWC{}
 			// Create a new Printer with these streams.
-			p2 := NewPrint(LevelInfo, 0, dOut, dErr)
+			p2 := NewPrinter(LevelInfo, 0, dOut, dErr)
 			// Call Close.
 			err := p2.Close()
 			assert.NoError(t, err)

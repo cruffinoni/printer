@@ -21,4 +21,7 @@ const (
 
 	// FlagPanicOnError enables panic behavior on error conditions.
 	FlagPanicOnError
+
+	// FlagWithoutNewLine disables the automatic newline at the end of the output.
+	FlagWithoutNewLine
 )

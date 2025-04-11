@@ -27,7 +27,7 @@ type Printer struct {
 	fields   LogFields
 }
 
-// NewPrint creates a new Printer instance with specified log level and I/O streams.
+// NewPrinter creates a new Printer instance with specified log level and I/O streams.
 //
 // Parameters:
 //   - loglevel: int - The initial logging level.
@@ -36,7 +36,7 @@ type Printer struct {
 //
 // Returns:
 //   - *Printer: A new Printer instance.
-func NewPrint(loglevel Levels, flags Flags, out, err io.WriteCloser) *Printer {
+func NewPrinter(loglevel Levels, flags Flags, out, err io.WriteCloser) *Printer {
 	return &Printer{
 		out:      out,
 		err:      err,
@@ -134,9 +134,11 @@ func (p *Printer) writeTo(b []byte, writer io.Writer) (int, error) {
 	p.mx.Lock()
 	defer p.mx.Unlock()
 	b = p.formatColor(b)
-	bt := []byte("\n")
-	if !bytes.HasSuffix(b, bt) {
-		b = append(b, bt...)
+	if p.flags&FlagWithoutNewLine == 0 {
+		bt := []byte("\n")
+		if !bytes.HasSuffix(b, bt) {
+			b = append(b, bt...)
+		}
 	}
 	return writer.Write(b)
 }
@@ -215,22 +217,19 @@ func (p *Printer) GetLogLevel() Levels {
 //
 // Returns:
 //   - string: The formatted log prefix.
-func (p *Printer) formatPrefix(level string) string {
-	prefix := ""
+func (p *Printer) formatPrefix(level Levels) string {
+	content := make([]string, 0, 3)
 	if p.flags&FlagWithGoroutineID != 0 {
-		prefix += fmt.Sprintf("[%03d", getGoroutineID())
+		content = append(content, fmt.Sprintf("%03d", getGoroutineID()))
 	}
 	if p.flags&FlagWithDate != 0 {
-		if prefix != "" {
-			prefix += " | "
-		}
-		prefix += time.Now().Format("15:04:05.000")
+		content = append(content, time.Now().Format("15:04:05.000"))
 	}
-	if prefix != "" {
-		prefix += " | "
+	content = append(content, level.String())
+	if p.flags&FlagWithColor != 0 {
+		return fmt.Sprintf("{{{%s}}}[%s]{{{-RESET}}} ", level.GetColor(), strings.Join(content, " | "))
 	}
-	prefix += level
-	return prefix
+	return fmt.Sprintf("[%s] ", strings.Join(content, " | "))
 }
 
 // Errorf logs an error message if the log level permits.
@@ -240,7 +239,7 @@ func (p *Printer) formatPrefix(level string) string {
 //   - a: ...any - The arguments to format.
 func (p *Printer) Errorf(format string, a ...any) {
 	if p.logLevel >= LevelError {
-		msg := fmt.Sprintf("{{{-F_RED,BOLD}}}"+p.formatPrefix("ERROR")+" {{{-RESET}}}"+format, a...)
+		msg := fmt.Sprintf(p.formatPrefix(LevelError)+format, a...)
 		p.WriteToErr([]byte(msg))
 	}
 }
@@ -252,7 +251,7 @@ func (p *Printer) Errorf(format string, a ...any) {
 //   - a: ...any - The arguments to format.
 func (p *Printer) Warnf(format string, a ...any) {
 	if p.logLevel >= LevelWarn {
-		msg := fmt.Sprintf("{{{-F_YELLOW,BOLD}}}"+p.formatPrefix("WARN")+" {{{-RESET}}}"+format, a...)
+		msg := fmt.Sprintf(p.formatPrefix(LevelWarn)+format, a...)
 		p.WriteToStd([]byte(msg))
 	}
 }
@@ -264,7 +263,7 @@ func (p *Printer) Warnf(format string, a ...any) {
 //   - a: ...any - The arguments to format.
 func (p *Printer) Infof(format string, a ...any) {
 	if p.logLevel >= LevelInfo {
-		msg := fmt.Sprintf("{{{-F_BLUE,BOLD}}}"+p.formatPrefix("INFO")+" {{{-RESET}}}"+format, a...)
+		msg := fmt.Sprintf(p.formatPrefix(LevelInfo)+format, a...)
 		p.WriteToStd([]byte(msg))
 	}
 }
@@ -276,7 +275,7 @@ func (p *Printer) Infof(format string, a ...any) {
 //   - a: ...any - The arguments to format.
 func (p *Printer) Debugf(format string, a ...any) {
 	if p.logLevel >= LevelDebug {
-		msg := fmt.Sprintf("{{{-F_CYAN,BOLD}}}"+p.formatPrefix("DEBUG")+" {{{-RESET}}}"+format, a...)
+		msg := fmt.Sprintf(p.formatPrefix(LevelDebug)+format, a...)
 		p.WriteToStd([]byte(msg))
 	}
 }
@@ -322,11 +321,11 @@ func (p *Printer) Copy() *Printer {
 	return cpyPrinter
 }
 
-// DisableColor creates a new Printer instance with color output disabled.
+// WithoutColor creates a new Printer instance with color output disabled.
 //
 // Returns:
 //   - *Printer: A new Printer instance with the color flag disabled.
-func (p *Printer) DisableColor() *Printer {
+func (p *Printer) WithoutColor() *Printer {
 	newPrinter := p.Copy()
 	newPrinter.flags &^= FlagWithColor
 	return newPrinter
@@ -364,5 +363,18 @@ func (p *Printer) WithFields(fields LogFields) *Printer {
 	for key, value := range fields {
 		newPrinter.fields[key] = value
 	}
+	return newPrinter
+}
+
+// WithoutNewLine creates a new Printer instance with the newline flag disabled.
+//
+// This method performs a deep copy of the current Printer instance and sets
+// the WithoutNewLine flag in the new instance.
+//
+// Returns:
+//   - *Printer: A new Printer instance with the WithoutNewLine flag set.
+func (p *Printer) WithoutNewLine() *Printer {
+	newPrinter := p.Copy()
+	newPrinter.flags |= FlagWithoutNewLine
 	return newPrinter
 }

@@ -6,7 +6,7 @@ import (
 )
 
 // globalPrinter is the default Printer instance used by global logging functions.
-var globalPrinter = NewPrint(LevelDebug, FlagWithDate|FlagWithGoroutineID|FlagWithColor, os.Stdout, os.Stderr)
+var globalPrinter = NewPrinter(LevelDebug, FlagWithDate|FlagWithGoroutineID|FlagWithColor, os.Stdout, os.Stderr)
 
 // Printf formats and writes a message to the standard output stream using the global printer.
 //
@@ -127,4 +127,21 @@ func WithField(key string, value any) *Printer {
 //   - *Printer: A new Printer instance with the added fields.
 func WithFields(fields LogFields) *Printer {
 	return globalPrinter.WithFields(fields)
+}
+
+// WithoutColor returns a new Printer instance that disables colored output.
+//
+// Returns:
+//   - *Printer: A new Printer instance with color disabled.
+func WithoutColor() *Printer {
+	return globalPrinter.WithoutColor()
+}
+
+// WithoutNewLine returns a new Printer instance that disables appending a newline
+// character at the end of the output.
+//
+// Returns:
+//   - *Printer: A new Printer instance with newline suppression.
+func WithoutNewLine() *Printer {
+	return globalPrinter.WithoutNewLine()
 }
