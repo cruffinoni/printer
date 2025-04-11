@@ -1,4 +1,4 @@
-module github.com/cruffinoni/printer
+module github.com/cruffinoni/printer/v2
 
 go 1.24.0
 
