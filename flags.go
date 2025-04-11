@@ -7,6 +7,9 @@ package printer
 type Flags uint
 
 const (
+	// WithNoFlags is the default value for Flags, indicating no special options are set.
+	WithNoFlags Flags = 0
+
 	// FlagWithDate enables the inclusion of the current date in the output.
 	FlagWithDate Flags = 1 << iota
 
