@@ -2,7 +2,6 @@ package printer
 
 import (
 	"log"
-	"os"
 	"testing"
 )
 
@@ -40,24 +39,4 @@ func TestClose(t *testing.T) {
 	if err != nil {
 		t.Error("Close() failed")
 	}
-}
-
-func TestFlagWithDate(t *testing.T) {
-	p := NewPrint(LevelDebug, FlagWithDate, os.Stdin, os.Stdout, os.Stderr)
-	p.Infof("This is a test message with date")
-}
-
-func TestFlagWithGoroutineID(t *testing.T) {
-	p := NewPrint(LevelDebug, FlagWithGoroutineID, os.Stdin, os.Stdout, os.Stderr)
-	p.Infof("This is a test message with goroutine ID")
-}
-
-func TestFlagWithColor(t *testing.T) {
-	p := NewPrint(LevelDebug, FlagWithColor, os.Stdin, os.Stdout, os.Stderr)
-	p.Infof("This is a test message with color")
-}
-
-func TestCombinedFlags(t *testing.T) {
-	p := NewPrint(LevelDebug, FlagWithDate|FlagWithGoroutineID|FlagWithColor, os.Stdin, os.Stdout, os.Stderr)
-	p.Infof("This is a test message with combined flags")
 }

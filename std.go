@@ -6,7 +6,7 @@ import (
 )
 
 // globalPrinter is the default Printer instance used by global logging functions.
-var globalPrinter = NewPrint(LevelDebug,  FlagWithDate|FlagWithGoroutineID|FlagWithColor, os.Stdout, os.Stderr)
+var globalPrinter = NewPrint(LevelDebug, FlagWithDate|FlagWithGoroutineID|FlagWithColor, os.Stdout, os.Stderr)
 
 // Printf formats and writes a message to the standard output stream using the global printer.
 //
@@ -94,7 +94,7 @@ func Debugf(format string, a ...interface{}) {
 //
 // Parameters:
 //   - level: int - The new log level to set.
-func SetLogLevel(level int) {
+func SetLogLevel(level Levels) {
 	globalPrinter.SetLogLevel(level)
 }
 
@@ -102,6 +102,6 @@ func SetLogLevel(level int) {
 //
 // Returns:
 //   - int: The current global log level.
-func GetLogLevel() int {
+func GetLogLevel() Levels {
 	return globalPrinter.GetLogLevel()
 }

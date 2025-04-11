@@ -17,16 +17,10 @@ import (
 type Printer struct {
 	out      io.WriteCloser // Output stream for standard messages
 	err      io.WriteCloser // Output stream for error messages
-	logLevel int            // Current logging level
-	flags    int
-	mx       sync.Mutex     // Mutex for synchronized writes
+	logLevel Levels         // Current logging level
+	flags    Flags
+	mx       sync.Mutex // Mutex for synchronized writes
 }
-
-const (
-	FlagWithDate = 1 << iota
-	FlagWithGoroutineID
-	FlagWithColor
-)
 
 // NewPrint creates a new Printer instance with specified log level and I/O streams.
 //
@@ -37,12 +31,12 @@ const (
 //
 // Returns:
 //   - *Printer: A new Printer instance.
-func NewPrint(loglevel, flags int, out, err io.WriteCloser) *Printer {
+func NewPrint(loglevel Levels, flags Flags, out, err io.WriteCloser) *Printer {
 	return &Printer{
 		out:      out,
 		err:      err,
 		logLevel: loglevel,
-		flags:    flags | FlagWithColor,
+		flags:    flags,
 		mx:       sync.Mutex{},
 	}
 }
@@ -50,13 +44,6 @@ func NewPrint(loglevel, flags int, out, err io.WriteCloser) *Printer {
 const (
 	prefixB = "B_" // Prefix for background colors
 	prefixF = "F_" // Prefix for foreground colors
-)
-
-const (
-	LevelError = iota // Error level logging
-	LevelWarn         // Warning level logging
-	LevelInfo         // Info level logging
-	LevelDebug        // Debug level logging
 )
 
 // bufferPool provides reusable byte buffers to reduce memory allocations.
@@ -77,7 +64,7 @@ var colorFinderRegex = regexp.MustCompile(`\{{3}-?([\w,_]*)}{3}`)
 // Returns:
 //   - []byte: The buffer with color formatting tokens replaced by ANSI codes.
 func (p *Printer) formatColor(buffer []byte) []byte {
-	if l.flags&FlagWithColor == 0 {
+	if p.flags&FlagWithColor == 0 {
 		return buffer
 	}
 	f := colorFinderRegex.FindAllSubmatch(buffer, -1)
@@ -186,7 +173,7 @@ func (p *Printer) Write(buffer []byte) (n int, err error) {
 //
 // Parameters:
 //   - level: int - The new log level to set.
-func (p *Printer) SetLogLevel(level int) {
+func (p *Printer) SetLogLevel(level Levels) {
 	p.logLevel = level
 }
 
@@ -194,7 +181,7 @@ func (p *Printer) SetLogLevel(level int) {
 //
 // Returns:
 //   - int: The current log level.
-func (p *Printer) GetLogLevel() int {
+func (p *Printer) GetLogLevel() Levels {
 	return p.logLevel
 }
 
@@ -207,10 +194,10 @@ func (p *Printer) GetLogLevel() int {
 //   - string: The formatted log prefix.
 func (p *Printer) formatPrefix(level string) string {
 	prefix := ""
-	if l.flags&FlagWithGoroutineID != 0 {
+	if p.flags&FlagWithGoroutineID != 0 {
 		prefix += fmt.Sprintf("[%03d", getGoroutineID())
 	}
-	if l.flags&FlagWithDate != 0 {
+	if p.flags&FlagWithDate != 0 {
 		if prefix != "" {
 			prefix += " | "
 		}
@@ -295,8 +282,26 @@ func (p *Printer) Close() error {
 	return nil
 }
 
-func (l *Printer) DisableColor() *Printer {
-	newPrinter := *l
+// deepCopy creates a new Printer instance with the same configuration as the current one.
+//
+// Returns:
+//   - *Printer: A new Printer instance with the same configuration.
+func (p *Printer) deepCopy() *Printer {
+	return &Printer{
+		out:      p.out,
+		err:      p.err,
+		logLevel: p.logLevel,
+		flags:    p.flags,
+		mx:       sync.Mutex{},
+	}
+}
+
+// DisableColor creates a new Printer instance with color output disabled.
+//
+// Returns:
+//   - *Printer: A new Printer instance with the color flag disabled.
+func (p *Printer) DisableColor() *Printer {
+	newPrinter := p.deepCopy()
 	newPrinter.flags &^= FlagWithColor
-	return &newPrinter
+	return newPrinter
 }
