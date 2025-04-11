@@ -19,9 +19,9 @@ go get github.com/cruffinoni/printer
 
 ## Usage
 
-### Creating a Writer
+### Creating a Printer
 
-To create a new `Writer` instance, use the `NewPrint` function:
+To create a new `Printer` instance, use the `NewPrint` function:
 
 ```go
 import (
@@ -29,7 +29,7 @@ import (
     "github.com/cruffinoni/printer"
 )
 
-writer := printer.NewPrint(printer.LevelDebug, os.Stdin, os.Stdout, os.Stderr)
+printer := printer.NewPrint(printer.LevelDebug, os.Stdin, os.Stdout, os.Stderr)
 ```
 
 ### Logging Methods
@@ -48,17 +48,17 @@ printer.Infof("This is an info message.")
 printer.Debugf("This is a debug message.")
 ```
 
-#### Writer Methods
+#### Printer Methods
 
-For more control, you can use the `Writer` methods:
+For more control, you can use the `Printer` methods:
 
 ```go
-writer.WriteToStd([]byte("Standard message"))
-writer.WriteToError([]byte("Error message"))
-writer.Errorf("Formatted error message: %s", "error details")
-writer.Warnf("Warning message")
-writer.Infof("Info message")
-writer.Debugf("Debug message")
+printer.WriteToStd([]byte("Standard message"))
+printer.WriteToError([]byte("Error message"))
+printer.Errorf("Formatted error message: %s", "error details")
+printer.Warnf("Warning message")
+printer.Infof("Info message")
+printer.Debugf("Debug message")
 ```
 
 ### Setting and Getting Log Level
@@ -74,6 +74,17 @@ To get the current log level:
 ```go
 logLevel := printer.GetLogLevel()
 fmt.Println("Current log level:", logLevel)
+```
+
+### Closing the Printer
+
+To close the `Printer` and its associated files:
+
+```go
+err := printer.Close()
+if err != nil {
+    fmt.Println("Error closing printer:", err)
+}
 ```
 
 ## Log Levels

@@ -1,54 +1,74 @@
+// Package printer provides a concurrency-safe, color-formatted logging utility with
+// support for multiple log levels and configurable output streams.
 package printer
 
 import (
 	"bytes"
 	"fmt"
-	"os"
+	"io"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
 )
 
-type Writer struct {
-	out      *os.File
-	in       *os.File
-	err      *os.File
-	logLevel int
-	mx       *sync.RWMutex
+// Printer provides structured output to various I/O streams with support for
+// log levels, colored output, and concurrency-safe operations.
+type Printer struct {
+	out      io.WriteCloser // Output stream for standard messages
+	err      io.WriteCloser // Output stream for error messages
+	logLevel int            // Current logging level
+	mx       sync.Mutex     // Mutex for synchronized writes
 }
 
-func NewPrint(loglevel int, in, out, err *os.File) *Writer {
-	return &Writer{
+// NewPrint creates a new Printer instance with specified log level and I/O streams.
+//
+// Parameters:
+//   - loglevel: int - The initial logging level.
+//   - out: io.WriteCloser - The output stream for standard messages.
+//   - err: io.WriteCloser - The output stream for error messages.
+//
+// Returns:
+//   - *Printer: A new Printer instance.
+func NewPrint(loglevel int, out, err io.WriteCloser) *Printer {
+	return &Printer{
 		out:      out,
-		in:       in,
 		err:      err,
 		logLevel: loglevel,
-		mx:       &sync.RWMutex{},
+		mx:       sync.Mutex{},
 	}
 }
 
 const (
-	prefixB = "B_"
-	prefixF = "F_"
+	prefixB = "B_" // Prefix for background colors
+	prefixF = "F_" // Prefix for foreground colors
 )
 
 const (
-	LevelError = iota
-	LevelWarn
-	LevelInfo
-	LevelDebug
+	LevelError = iota // Error level logging
+	LevelWarn         // Warning level logging
+	LevelInfo         // Info level logging
+	LevelDebug        // Debug level logging
 )
 
+// bufferPool provides reusable byte buffers to reduce memory allocations.
 var bufferPool = sync.Pool{
 	New: func() interface{} {
 		return &bytes.Buffer{}
 	},
 }
 
+// colorFinderRegex matches color formatting placeholders in the log strings.
 var colorFinderRegex = regexp.MustCompile(`\{{3}-?([\w,_]*)}{3}`)
 
-func (l *Writer) formatColor(buffer []byte) []byte {
+// formatColor replaces color formatting tokens in the buffer with ANSI codes.
+//
+// Parameters:
+//   - buffer: []byte - The input buffer containing color formatting tokens.
+//
+// Returns:
+//   - []byte: The buffer with color formatting tokens replaced by ANSI codes.
+func (p *Printer) formatColor(buffer []byte) []byte {
 	f := colorFinderRegex.FindAllSubmatch(buffer, -1)
 	if f == nil {
 		return buffer
@@ -86,7 +106,7 @@ func (l *Writer) formatColor(buffer []byte) []byte {
 			}
 		}
 
-		output.Truncate(output.Len() - 1) // Remove the last semicolon
+		output.Truncate(output.Len() - 1)
 		output.WriteByte('m')
 
 		buffer = bytes.ReplaceAll(buffer, i[0], output.Bytes())
@@ -97,74 +117,155 @@ func (l *Writer) formatColor(buffer []byte) []byte {
 	return buffer
 }
 
-func (l *Writer) WriteToError(b []byte) {
-	l.write(append([]byte("{{{-F_RED,BOLD}}}Error:{{{-RESET}}} "), b...), l.err)
-}
-
-func (l *Writer) WriteToStd(b []byte) {
-	l.write(b, l.out)
-}
-
-func (l *Writer) write(b []byte, out *os.File) {
-	l.mx.RLock()
-	b = l.formatColor(b)
-	defer l.mx.RUnlock()
+// writeTo writes a byte slice to the specified output stream with formatting and locking.
+//
+// Parameters:
+//   - b: []byte - The data to write.
+//   - writer: io.Writer - The output stream to write to.
+//
+// Returns:
+//   - int: Number of bytes written.
+//   - error: Error encountered during write, if any.
+func (p *Printer) writeTo(b []byte, writer io.Writer) (int, error) {
+	p.mx.Lock()
+	defer p.mx.Unlock()
+	b = p.formatColor(b)
 	bt := []byte("\n")
 	if !bytes.HasSuffix(b, bt) {
 		b = append(b, bt...)
 	}
-	_, err := out.Write(b)
+	return writer.Write(b)
+}
+
+// WriteToStd writes a raw message to the standard output stream.
+//
+// Parameters:
+//   - b: []byte - The message to write.
+func (p *Printer) WriteToStd(b []byte) {
+	_, err := p.writeTo(b, p.out)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (l *Writer) WriteToStdf(format string, a ...any) {
-	b := []byte(fmt.Sprintf(format, a...))
-	l.write(b, l.out)
+// WriteToErr writes a raw message to the error output stream.
+//
+// Parameters:
+//   - b: []byte - The message to write.
+func (p *Printer) WriteToErr(b []byte) {
+	_, err := p.writeTo(b, p.err)
+	if err != nil {
+		panic(err)
+	}
 }
 
-func (l *Writer) WriteToErrf(format string, a ...any) {
-	b := []byte(fmt.Sprintf(format, a...))
-	l.WriteToError(b)
+// Write writes a byte slice to the standard output stream.
+//
+// Parameters:
+//   - buffer: []byte - The data to write.
+//
+// Returns:
+//   - int: Number of bytes written.
+//   - error: Error encountered during write.
+func (p *Printer) Write(buffer []byte) (n int, err error) {
+	return p.writeTo(buffer, p.out)
 }
 
-func (l *Writer) SetLogLevel(level int) {
-	l.logLevel = level
+// SetLogLevel updates the log level of the Printer.
+//
+// Parameters:
+//   - level: int - The new log level to set.
+func (p *Printer) SetLogLevel(level int) {
+	p.logLevel = level
 }
 
-func (l *Writer) GetLogLevel() int {
-	return l.logLevel
+// GetLogLevel retrieves the current log level.
+//
+// Returns:
+//   - int: The current log level.
+func (p *Printer) GetLogLevel() int {
+	return p.logLevel
 }
 
-func (l *Writer) formatPrefix(level string) string {
+// formatPrefix returns a formatted log prefix with goroutine ID, timestamp, and log level.
+//
+// Parameters:
+//   - level: string - The log level as a string.
+//
+// Returns:
+//   - string: The formatted log prefix.
+func (p *Printer) formatPrefix(level string) string {
 	return fmt.Sprintf("[%03d | %s | %s]", getGoroutineID(), time.Now().Format("15:04:05.000"), level)
 }
 
-func (l *Writer) Errorf(format string, a ...interface{}) {
-	if l.logLevel >= LevelError {
-		msg := fmt.Sprintf("{{{-F_RED,BOLD}}}"+l.formatPrefix("ERROR")+" {{{-RESET}}}"+format, a...)
-		l.write([]byte(msg), l.err)
+// Errorf logs an error message if the log level permits.
+//
+// Parameters:
+//   - format: string - The format string.
+//   - a: ...interface{} - The arguments to format.
+func (p *Printer) Errorf(format string, a ...interface{}) {
+	if p.logLevel >= LevelError {
+		msg := fmt.Sprintf("{{{-F_RED,BOLD}}}"+p.formatPrefix("ERROR")+" {{{-RESET}}}"+format, a...)
+		p.WriteToErr([]byte(msg))
 	}
 }
 
-func (l *Writer) Warnf(format string, a ...interface{}) {
-	if l.logLevel >= LevelWarn {
-		msg := fmt.Sprintf("{{{-F_YELLOW,BOLD}}}"+l.formatPrefix("WARN")+" {{{-RESET}}}"+format, a...)
-		l.write([]byte(msg), l.out)
+// Warnf logs a warning message if the log level permits.
+//
+// Parameters:
+//   - format: string - The format string.
+//   - a: ...interface{} - The arguments to format.
+func (p *Printer) Warnf(format string, a ...interface{}) {
+	if p.logLevel >= LevelWarn {
+		msg := fmt.Sprintf("{{{-F_YELLOW,BOLD}}}"+p.formatPrefix("WARN")+" {{{-RESET}}}"+format, a...)
+		p.WriteToStd([]byte(msg))
 	}
 }
 
-func (l *Writer) Infof(format string, a ...interface{}) {
-	if l.logLevel >= LevelInfo {
-		msg := fmt.Sprintf("{{{-F_BLUE,BOLD}}}"+l.formatPrefix("INFO")+" {{{-RESET}}}"+format, a...)
-		l.write([]byte(msg), l.out)
+// Infof logs an informational message if the log level permits.
+//
+// Parameters:
+//   - format: string - The format string.
+//   - a: ...interface{} - The arguments to format.
+func (p *Printer) Infof(format string, a ...interface{}) {
+	if p.logLevel >= LevelInfo {
+		msg := fmt.Sprintf("{{{-F_BLUE,BOLD}}}"+p.formatPrefix("INFO")+" {{{-RESET}}}"+format, a...)
+		p.WriteToStd([]byte(msg))
 	}
 }
 
-func (l *Writer) Debugf(format string, a ...interface{}) {
-	if l.logLevel >= LevelDebug {
-		msg := fmt.Sprintf("{{{-F_CYAN,BOLD}}}"+l.formatPrefix("DEBUG")+" {{{-RESET}}}"+format, a...)
-		l.write([]byte(msg), l.out)
+// Debugf logs a debug message if the log level permits.
+//
+// Parameters:
+//   - format: string - The format string.
+//   - a: ...interface{} - The arguments to format.
+func (p *Printer) Debugf(format string, a ...interface{}) {
+	if p.logLevel >= LevelDebug {
+		msg := fmt.Sprintf("{{{-F_CYAN,BOLD}}}"+p.formatPrefix("DEBUG")+" {{{-RESET}}}"+format, a...)
+		p.WriteToStd([]byte(msg))
 	}
+}
+
+// Close safely closes all associated I/O streams of the Printer.
+//
+// This method iterates over all associated I/O streams (`out` and `err`) and attempts to close them.
+// If any stream fails to close, the method returns the encountered error. If all streams are closed
+// successfully, it returns nil.
+//
+// Returns:
+//   - error: An error encountered during the close operation, or nil if all streams are closed successfully.
+func (p *Printer) Close() error {
+	if p.out != nil {
+		if err := p.out.Close(); err != nil {
+			return err
+		}
+		p.out = nil
+	}
+	if p.err != nil {
+		if err := p.err.Close(); err != nil {
+			return err
+		}
+		p.err = nil
+	}
+	return nil
 }
