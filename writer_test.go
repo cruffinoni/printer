@@ -185,7 +185,7 @@ func TestPrinter(t *testing.T) {
 			assert.Contains(t, errStr, "Error message")
 
 			// Verify that message prefixes include a timestamp if FlagWithDate is set.
-			// Because the timestamp is generated at runtime, we check for the format "15:04:05"
+			// Because the timestamp is generated at runtime, we check for the format "15:04"
 			now := time.Now().Format("15:04")
 			assert.Contains(t, outStr, now)
 		},
