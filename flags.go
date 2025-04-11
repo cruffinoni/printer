@@ -18,4 +18,7 @@ const (
 
 	// FlagWithColor enables colored output for better readability.
 	FlagWithColor
+
+	// FlagPanicOnError enables panic behavior on error conditions.
+	FlagPanicOnError
 )

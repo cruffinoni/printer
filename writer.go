@@ -41,7 +41,7 @@ func NewPrint(loglevel Levels, flags Flags, out, err io.WriteCloser) *Printer {
 		out:      out,
 		err:      err,
 		logLevel: loglevel,
-		flags:    flags,
+		flags:    flags | FlagPanicOnError,
 		mx:       sync.Mutex{},
 		fields:   make(LogFields),
 	}
@@ -150,6 +150,23 @@ func (p *Printer) WriteToStd(b []byte) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+// Printf writes a formatted string to the standard output stream.
+//
+// Parameters:
+//   - format: string - The format string.
+//   - a: ...any - The arguments to format.
+func (p *Printer) Printf(format string, a ...any) {
+	p.WriteToStd([]byte(fmt.Sprintf(format, a...)))
+}
+
+// Print writes a raw string to the standard output stream.
+//
+// Parameters:
+//   - s: string - The string to write.
+func (p *Printer) Print(s string) {
+	p.WriteToStd([]byte(s))
 }
 
 // WriteToErr writes a raw message to the error output stream.

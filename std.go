@@ -14,7 +14,7 @@ var globalPrinter = NewPrint(LevelDebug, FlagWithDate|FlagWithGoroutineID|FlagWi
 //   - p: string - The format string.
 //   - a: ...any - The arguments to format.
 func Printf(p string, a ...any) {
-	globalPrinter.WriteToStd([]byte(fmt.Sprintf(p, a...)))
+	globalPrinter.Printf(p, a...)
 }
 
 // Print writes a plain string to the standard output stream using the global printer.
@@ -22,7 +22,7 @@ func Printf(p string, a ...any) {
 // Parameters:
 //   - s: string - The message to write.
 func Print(s string) {
-	globalPrinter.WriteToStd([]byte(s))
+	globalPrinter.Print(s)
 }
 
 // PrintError writes an error message to the error output stream using the global printer.
