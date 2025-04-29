@@ -227,7 +227,11 @@ func (p *Printer) formatPrefix(level Levels) string {
 	if len(p.fields) > 0 {
 		fieldStrings := make([]string, 0, len(p.fields))
 		for k, v := range p.fields {
-			fieldStrings = append(fieldStrings, fmt.Sprintf("%s=%v", k, v))
+			fieldStr := fmt.Sprintf("%s=\"%v\"", k, v)
+			if str, ok := v.(string); ok {
+				fieldStr = fmt.Sprintf("%s=%q", k, str)
+			}
+			fieldStrings = append(fieldStrings, fieldStr)
 		}
 		content = append(content, strings.Join(fieldStrings, ", "))
 	}
