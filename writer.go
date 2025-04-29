@@ -1,5 +1,3 @@
-// Package printer provides a concurrency-safe, color-formatted logging utility with
-// support for multiple log levels and configurable output streams.
 package printer
 
 import (
@@ -210,7 +208,7 @@ func (p *Printer) GetLogLevel() Levels {
 	return p.logLevel
 }
 
-// formatPrefix returns a formatted log prefix with goroutine ID, timestamp, and log level.
+// formatPrefix returns a formatted log prefix with goroutine ID, timestamp, log level, and fields.
 //
 // Parameters:
 //   - level: string - The log level as a string.
@@ -226,6 +224,17 @@ func (p *Printer) formatPrefix(level Levels) string {
 		content = append(content, time.Now().Format("15:04:05.000"))
 	}
 	content = append(content, level.String())
+	if len(p.fields) > 0 {
+		fieldStrings := make([]string, 0, len(p.fields))
+		for k, v := range p.fields {
+			fieldStr := fmt.Sprintf("%s=\"%v\"", k, v)
+			if str, ok := v.(string); ok {
+				fieldStr = fmt.Sprintf("%s=%q", k, str)
+			}
+			fieldStrings = append(fieldStrings, fieldStr)
+		}
+		content = append(content, strings.Join(fieldStrings, ", "))
+	}
 	if p.flags&FlagWithColor != 0 {
 		return fmt.Sprintf("{{{%s}}}[%s]{{{-RESET}}} ", level.GetColor(), strings.Join(content, " | "))
 	}

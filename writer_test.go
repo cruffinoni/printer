@@ -188,6 +188,12 @@ func TestPrinter(t *testing.T) {
 			// Because the timestamp is generated at runtime, we check for the format "15:04"
 			now := time.Now().Format("15:04")
 			assert.Contains(t, outStr, now)
+			// Verify that fields are included in the log message
+			pWithFields := p.WithField("key", "value")
+			stdOut.buf.Reset()
+			pWithFields.Infof("Info message with field")
+			outStr = stdOut.String()
+			assert.Contains(t, outStr, "key=value")
 		},
 	}
 

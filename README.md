@@ -86,6 +86,26 @@ fields := printer.LogFields{
 printer.WithFields(fields).Infof("This is an info message with multiple fields")
 ```
 
+#### Printing Out Fields
+
+When there are fields added to a log entry, the `Printer` struct will print out the fields in the log message. The fields will be included in the log prefix.
+
+Example:
+
+```go
+fields := printer.LogFields{
+    "user": "john_doe",
+    "action": "login",
+}
+printer.WithFields(fields).Infof("User action logged")
+```
+
+The log message will include the fields in the prefix:
+
+```
+[15:04:05.000 | INFO | user=john_doe, action=login] User action logged
+```
+
 ### Setting and Getting Log Level
 
 To set the log level:
