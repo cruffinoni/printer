@@ -9,6 +9,8 @@ The `printer` package provides a comprehensive logging utility with color format
 - Thread-safe logging.
 - Global printer instance for easy logging.
 - Structured logging with fields.
+- Log truncation for long messages.
+- Field truncation for long fields.
 
 ## Installation
 
@@ -121,6 +123,22 @@ logLevel := printer.GetLogLevel()
 fmt.Println("Current log level:", logLevel)
 ```
 
+### Setting Maximum Log Length
+
+To set the maximum log length for truncation:
+
+```go
+printer.SetMaxLogLength(100)
+```
+
+### Setting Maximum Field Length
+
+To set the maximum field length for truncation:
+
+```go
+printer.SetMaxFieldLength(50)
+```
+
 ### Closing the Printer
 
 To close the `Printer` and its associated files:
@@ -139,6 +157,8 @@ The `Printer` struct includes flags to control the logging behavior. The availab
 - `FlagWithDate`: Include the current date and time in log messages.
 - `FlagWithGoroutineID`: Include the goroutine ID in log messages.
 - `FlagWithColor`: Enable color formatting in log messages (enabled by default).
+- `FlagTruncateLogs`: Enable log truncation.
+- `FlagTruncateFields`: Enable field truncation.
 
 To create a new `Printer` instance with specific flags, use the `NewPrint` function and combine the flags using the bitwise OR operator (`|`):
 

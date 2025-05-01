@@ -200,6 +200,20 @@ func TestPrinter(t *testing.T) {
 			pWithFields.Infof("Info message with multiple fields")
 			outStr = stdOut.String()
 			assert.Contains(t, outStr, "alpha=1, beta=two, gamma=true")
+			// Verify log truncation
+			p.SetMaxLogLength(10)
+			stdOut.buf.Reset()
+			p.Infof("This is a very long log message")
+			outStr = stdOut.String()
+			assert.Equal(t, 10, len(outStr))
+			// Verify field truncation
+			p.SetMaxFieldLength(5)
+			stdOut.buf.Reset()
+			pWithFields.Infof("Info message with multiple fields")
+			outStr = stdOut.String()
+			assert.Contains(t, outStr, "alpha")
+			assert.Contains(t, outStr, "beta")
+			assert.Contains(t, outStr, "gamma")
 		},
 	}
 
