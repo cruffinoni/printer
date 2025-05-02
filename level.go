@@ -1,12 +1,17 @@
 package printer
 
+// Levels represents the logging levels used in the Printer package.
 type Levels int
 
 const (
-	LevelError Levels = iota // Error level logging
-	LevelWarn                // Warning level logging
-	LevelInfo                // Info level logging
-	LevelDebug               // Debug level logging
+	// LevelError represents error level logging.
+	LevelError Levels = iota
+	// LevelWarn represents warning level logging.
+	LevelWarn
+	// LevelInfo represents info level logging.
+	LevelInfo
+	// LevelDebug represents debug level logging.
+	LevelDebug
 )
 
 // String returns the string representation of the logging level.
