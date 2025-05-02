@@ -189,6 +189,7 @@ Example:
 ```go
 printer.Print("{{{-F_RED,BOLD}}}This is a bold red message{{{-RESET}}}")
 ```
+
 ## Contributing
 
 Contributions are welcome! Please fork the repository and submit a pull request.
@@ -196,3 +197,10 @@ Contributions are welcome! Please fork the repository and submit a pull request.
 ## License
 
 This project is licensed under the MIT License. See the LICENSE file for details.
+
+## Additional Resources
+
+- [Go Documentation](https://golang.org/doc/)
+- [Go Modules](https://blog.golang.org/using-go-modules)
+- [Effective Go](https://golang.org/doc/effective_go)
+- [Go Concurrency Patterns](https://blog.golang.org/pipelines)

@@ -6,6 +6,13 @@ import (
 	"strings"
 )
 
+// getGoroutineID retrieves the ID of the current goroutine.
+//
+// This function uses the runtime.Stack function to obtain the stack trace of the current goroutine,
+// extracts the goroutine ID from the stack trace, and returns it as a uint64 value.
+//
+// Returns:
+//   - uint64: The ID of the current goroutine.
 func getGoroutineID() uint64 {
 	var buf [64]byte
 	n := runtime.Stack(buf[:], false)
