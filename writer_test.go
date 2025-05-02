@@ -193,7 +193,13 @@ func TestPrinter(t *testing.T) {
 			stdOut.buf.Reset()
 			pWithFields.Infof("Info message with field")
 			outStr = stdOut.String()
-			assert.Contains(t, outStr, "key=value")
+			assert.Contains(t, outStr, `key="value"`)
+			// Verify that fields are printed in alphabetical order
+			pWithFields = p.WithFields(LogFields{"beta": "two", "alpha": 1, "gamma": true})
+			stdOut.buf.Reset()
+			pWithFields.Infof("Info message with multiple fields")
+			outStr = stdOut.String()
+			assert.Contains(t, outStr, `alpha="1", beta="two", gamma="true"`)
 		},
 	}
 

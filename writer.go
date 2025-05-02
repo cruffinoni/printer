@@ -6,6 +6,7 @@ import (
 	"io"
 	"maps"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -233,6 +234,7 @@ func (p *Printer) formatPrefix(level Levels) string {
 			}
 			fieldStrings = append(fieldStrings, fieldStr)
 		}
+		sort.Strings(fieldStrings)
 		content = append(content, strings.Join(fieldStrings, ", "))
 	}
 	if p.flags&FlagWithColor != 0 {
