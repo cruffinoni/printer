@@ -18,12 +18,14 @@ type LogFields map[string]any
 // Printer provides structured output to various I/O streams with support for
 // log levels, colored output, and concurrency-safe operations.
 type Printer struct {
-	out      io.WriteCloser
-	err      io.WriteCloser
-	logLevel Levels
-	flags    Flags
-	mx       sync.Mutex
-	fields   LogFields
+	out            io.WriteCloser
+	err            io.WriteCloser
+	logLevel       Levels
+	flags          Flags
+	mx             sync.Mutex
+	fields         LogFields
+	maxLogLength   int
+	maxFieldLength int
 }
 
 // NewPrinter creates a new Printer instance with specified log level and I/O streams.
@@ -36,7 +38,7 @@ type Printer struct {
 // Returns:
 //   - *Printer: A new Printer instance.
 func NewPrinter(loglevel Levels, flags Flags, out, err io.WriteCloser) *Printer {
-	return &Printer{
+	p := &Printer{
 		out:      out,
 		err:      err,
 		logLevel: loglevel,
@@ -44,6 +46,15 @@ func NewPrinter(loglevel Levels, flags Flags, out, err io.WriteCloser) *Printer 
 		mx:       sync.Mutex{},
 		fields:   make(LogFields),
 	}
+
+	if flags&FlagTruncateLogs != 0 {
+		p.maxLogLength = DefaultMaxLogLength
+	}
+	if flags&FlagTruncateFields != 0 {
+		p.maxFieldLength = DefaultMaxFieldLength
+	}
+
+	return p
 }
 
 const (
@@ -118,6 +129,34 @@ func (p *Printer) formatColor(buffer []byte) []byte {
 
 	buffer = append(buffer, []byte("\x1b[0m")...)
 	return buffer
+}
+
+// truncateLog truncates the log message if it exceeds the maximum log length.
+//
+// Parameters:
+//   - b: []byte - The log message to truncate.
+//
+// Returns:
+//   - []byte: The truncated log message.
+func (p *Printer) truncateLog(s string) string {
+	if p.flags&FlagTruncateLogs != 0 && p.maxLogLength > 0 && len(s) > p.maxLogLength {
+		return s[:p.maxLogLength]
+	}
+	return s
+}
+
+// truncateField truncates the field if it exceeds the maximum field length.
+//
+// Parameters:
+//   - field: string - The field to truncate.
+//
+// Returns:
+//   - string: The truncated field.
+func (p *Printer) truncateField(field string) string {
+	if p.flags&FlagTruncateFields != 0 && p.maxFieldLength > 0 && len(field) > p.maxFieldLength {
+		return field[:p.maxFieldLength]
+	}
+	return field
 }
 
 // writeTo writes a byte slice to the specified output stream with formatting and locking.
@@ -209,6 +248,24 @@ func (p *Printer) GetLogLevel() Levels {
 	return p.logLevel
 }
 
+// SetMaxLogLength sets the maximum log length for truncation.
+//
+// Parameters:
+//   - length: int - The maximum log length to set.
+func (p *Printer) SetMaxLogLength(length int) {
+	p.flags |= FlagTruncateLogs
+	p.maxLogLength = length
+}
+
+// SetMaxFieldLength sets the maximum field length for truncation.
+//
+// Parameters:
+//   - length: int - The maximum field length to set.
+func (p *Printer) SetMaxFieldLength(length int) {
+	p.flags |= FlagTruncateFields
+	p.maxFieldLength = length
+}
+
 // formatPrefix returns a formatted log prefix with goroutine ID, timestamp, log level, and fields.
 //
 // Parameters:
@@ -232,6 +289,7 @@ func (p *Printer) formatPrefix(level Levels) string {
 			if str, ok := v.(string); ok {
 				fieldStr = fmt.Sprintf("%s=%q", k, str)
 			}
+			fieldStr = p.truncateField(fieldStr)
 			fieldStrings = append(fieldStrings, fieldStr)
 		}
 		sort.Strings(fieldStrings)
@@ -262,8 +320,8 @@ func (p *Printer) Errorf(format string, a ...any) {
 //   - a: ...any - The arguments to format.
 func (p *Printer) Warnf(format string, a ...any) {
 	if p.logLevel >= LevelWarn {
-		msg := fmt.Sprintf(p.formatPrefix(LevelWarn)+format, a...)
-		p.WriteToStd([]byte(msg))
+		msg := p.truncateLog(fmt.Sprintf(format, a...))
+		p.WriteToStd([]byte(p.formatPrefix(LevelWarn) + msg))
 	}
 }
 
@@ -274,8 +332,8 @@ func (p *Printer) Warnf(format string, a ...any) {
 //   - a: ...any - The arguments to format.
 func (p *Printer) Infof(format string, a ...any) {
 	if p.logLevel >= LevelInfo {
-		msg := fmt.Sprintf(p.formatPrefix(LevelInfo)+format, a...)
-		p.WriteToStd([]byte(msg))
+		msg := p.truncateLog(fmt.Sprintf(format, a...))
+		p.WriteToStd([]byte(p.formatPrefix(LevelInfo) + msg))
 	}
 }
 
@@ -286,8 +344,8 @@ func (p *Printer) Infof(format string, a ...any) {
 //   - a: ...any - The arguments to format.
 func (p *Printer) Debugf(format string, a ...any) {
 	if p.logLevel >= LevelDebug {
-		msg := fmt.Sprintf(p.formatPrefix(LevelDebug)+format, a...)
-		p.WriteToStd([]byte(msg))
+		msg := p.truncateLog(fmt.Sprintf(format, a...))
+		p.WriteToStd([]byte(p.formatPrefix(LevelDebug) + msg))
 	}
 }
 
@@ -321,12 +379,14 @@ func (p *Printer) Close() error {
 //   - *Printer: A new Printer instance with the same configuration.
 func (p *Printer) Copy() *Printer {
 	cpyPrinter := &Printer{
-		out:      p.out,
-		err:      p.err,
-		logLevel: p.logLevel,
-		flags:    p.flags,
-		mx:       sync.Mutex{},
-		fields:   make(LogFields),
+		out:            p.out,
+		err:            p.err,
+		logLevel:       p.logLevel,
+		flags:          p.flags,
+		mx:             sync.Mutex{},
+		fields:         make(LogFields),
+		maxLogLength:   p.maxLogLength,
+		maxFieldLength: p.maxFieldLength,
 	}
 	maps.Copy(cpyPrinter.fields, p.fields)
 	return cpyPrinter

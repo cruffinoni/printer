@@ -24,4 +24,16 @@ const (
 
 	// FlagWithoutNewLine disables the automatic newline at the end of the output.
 	FlagWithoutNewLine
+
+	// FlagTruncateLogs enables truncation of log messages to a specified length.
+	FlagTruncateLogs
+
+	// FlagTruncateFields enables truncation of field values to a specified length.
+	FlagTruncateFields
+)
+
+// Default values for log and field truncation
+const (
+	DefaultMaxLogLength   = 100
+	DefaultMaxFieldLength = 50
 )
