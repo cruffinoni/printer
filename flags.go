@@ -14,27 +14,22 @@ const (
 	FlagWithDate Flags = 1 << iota
 
 	// FlagWithGoroutineID enables the inclusion of the current goroutine ID in the output.
-	FlagWithColor
+	FlagWithGoroutineID
 
 	// FlagWithColor enables colored output for better readability.
-	FlagPanicOnError
+	FlagWithColor
 
 	// FlagPanicOnError enables panic behavior on error conditions.
-	FlagWithoutNewLine
+	FlagPanicOnError
 
 	// FlagWithoutNewLine disables the automatic newline at the end of the output.
+	FlagWithoutNewLine
+
+	// FlagTruncateLogs enables truncation of log messages to a specified length.
 	FlagTruncateLogs
 
-	// FlagTruncateLogs enables log truncation.
-	FlagMaxLogLength
-
-	// FlagMaxLogLength specifies the maximum log length.
+	// FlagTruncateFields enables truncation of field values to a specified length.
 	FlagTruncateFields
-
-	// FlagTruncateFields enables field truncation.
-	FlagMaxFieldLength
-
-	// FlagMaxFieldLength specifies the maximum field length.
 )
 
 // Default values for log and field truncation
